@@ -1,28 +1,22 @@
 package com.jishnair.controller
 
 import akka.actor.ActorSystem
-import akka.actor.Status.Success
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
-import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.jishnair.actor.Registry
-import com.jishnair.actor.Registry.RequestMicroserviceList
 import com.jishnair.domain.Domain.Deployment
 import spray.json.DefaultJsonProtocol._
-
-
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import com.jishnair.service.DeploymentService
+import com.jishnair.service.RegistryService
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.language.postfixOps
-import scala.util.Failure
 
-object DeploymentController extends App {
+object RegistryController extends App {
 
   implicit val system = ActorSystem("registry-system")
   implicit val materializer = ActorMaterializer()
@@ -39,21 +33,22 @@ object DeploymentController extends App {
       path("deployment") {
         post {
           entity(as[List[Deployment]]) { deployment =>
-            val response = DeploymentService.deploy(deployment, registryRef)
+            val response = RegistryService.deploy(deployment, registryRef)
             complete(response)
           }
         }
 
       } ~ path("microservices") {
         get {
-          val response=registryRef ? RequestMicroserviceList( rnd.nextInt())
-          response.map{
-            case Success(msg) => println(msg)
-            case Failure(msg) => println(msg)
-
-          }
-          println(response)
-
+          complete(RegistryService.getListOfRunningMicroservices(registryRef))
+        }
+      } ~ path("healthcheck") {
+        get {
+          RegistryService.healthCheck(registryRef)
+          complete("")
+        }
+      } ~ path("all") {
+        get {
           complete("")
         }
       }
