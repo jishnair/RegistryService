@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.jishnair.actor.Registry
-import com.jishnair.domain.Domain.Deployment
+import com.jishnair.model.Model.Deployment
 import spray.json.DefaultJsonProtocol._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import com.jishnair.service.RegistryService

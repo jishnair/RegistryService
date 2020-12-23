@@ -7,8 +7,8 @@ import akka.routing.{GetRoutees, Routees}
 import akka.util.Timeout
 import com.jishnair.actor.Registry.{CreateMicroservice, HealthCheckAllMicroservices, RequestMicroserviceList}
 import com.jishnair.controller.RegistryController.{registryRef, rnd}
-import com.jishnair.domain.Domain
-import com.jishnair.domain.Domain.{Deployment, MicroserviceDto}
+import com.jishnair.model.Model
+import com.jishnair.model.Model.{Deployment, MicroserviceModel}
 import com.jishnair.util.DeploymentUtil._
 import spray.json.DefaultJsonProtocol._
 import spray.json.enrichAny
@@ -21,7 +21,7 @@ import scala.language.postfixOps
 object RegistryService {
 
   implicit val timeout = Timeout(2 seconds)
-  implicit val deploymentFormat = jsonFormat5(MicroserviceDto)
+  implicit val deploymentFormat = jsonFormat5(MicroserviceModel)
 
   def deploy(deploymentList: List[Deployment], registryActor: ActorRef): HttpResponse = {
     val dependecyTree = deploymentList.map(l => l.name -> l).toMap
@@ -43,7 +43,7 @@ object RegistryService {
   }
 
   def getListOfRunningMicroservices(registryActorRef: ActorRef): Future[HttpEntity.Strict] = {
-    val microserviceListFuture = (registryRef ? RequestMicroserviceList).mapTo[List[MicroserviceDto]]
+    val microserviceListFuture = (registryRef ? RequestMicroserviceList).mapTo[List[MicroserviceModel]]
 
     microserviceListFuture.map { microserviceList =>
       HttpEntity(ContentTypes.`application/json`, microserviceList.toJson.prettyPrint)

@@ -1,6 +1,6 @@
 package com.jishnair.util
 
-import com.jishnair.domain.Domain.Deployment
+import com.jishnair.model.Model.Deployment
 
 
 object DeploymentUtil {
@@ -12,8 +12,8 @@ object DeploymentUtil {
    * Contains a Depth First Search algorithm for finding cycles in the dependency tree
    *
    * @param deploymentList
-   * @return true => sanity check passed (No cyclic dependency, Only one entry point)
-   *         false => no cyclic dependency
+   * @return (true/false, Status message) : true => sanity check passed
+   *         false => sanity check failed
    */
   def checkDeploymentSanity(deploymentList: List[Deployment]): (Boolean, String) = {
 
@@ -61,7 +61,6 @@ object DeploymentUtil {
     def dfs(node: (String, List[String]), tree: Node, visited: Set[String]): Set[String] = {
       if (visited.contains(node._1) || node._2.isEmpty) {
         return Set(node._1) ++ visited
-
       } else {
         val newVisited = Set(node._1) ++ visited
         node._2.foreach { n =>

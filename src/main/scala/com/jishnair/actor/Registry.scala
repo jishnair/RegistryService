@@ -2,7 +2,7 @@ package com.jishnair.actor
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
 import akka.routing.{BalancingPool, BroadcastPool, RoundRobinPool}
-import com.jishnair.domain.Domain
+import com.jishnair.model.Model
 
 import scala.concurrent.duration.DurationInt
 import scala.util.Random
@@ -38,7 +38,7 @@ class Registry extends Actor with ActorLogging {
   //Keep track of the created microservices
   var nameToActorDB = Map.empty[String, ActorRef]
   var actorToNameDB = Map.empty[ActorRef, String]
-  var nameToMicroserviceDB = Map.empty[String, Domain.MicroserviceDto]
+  var nameToMicroserviceDB = Map.empty[String, Model.MicroserviceModel]
 
   override def preStart(): Unit = log.info("Registry started")
 
@@ -59,7 +59,7 @@ class Registry extends Actor with ActorLogging {
           context.watch(microServiceActor)
           nameToActorDB += name -> microServiceActor
           actorToNameDB += microServiceActor -> name
-          nameToMicroserviceDB += name -> Domain.MicroserviceDto(name, generateRandomId(), createMsg.isEntryPoint, createMsg.dependency, true)
+          nameToMicroserviceDB += name -> Model.MicroserviceModel(name, generateRandomId(), createMsg.isEntryPoint, createMsg.dependency, true)
           sender() ! Registry.MicroserviceCreated(createMsg.requestId)
 
       }
