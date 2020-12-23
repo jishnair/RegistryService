@@ -1,7 +1,6 @@
 package com.jishnair.actor
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
-
 import scala.concurrent.duration._
 
 object ServiceMonitor {
@@ -32,7 +31,6 @@ class ServiceMonitor(actorToMicroserviceId: Map[ActorRef, String],
     actorToMicroserviceId.keysIterator.foreach { microserviceActor =>
       context.watch(microserviceActor)
       microserviceActor ! Microservice.RequestHealthCheck(requestId)
-
     }
   }
 
@@ -53,24 +51,24 @@ class ServiceMonitor(actorToMicroserviceId: Map[ActorRef, String],
     case CollectionTimeout =>
       val timedOutReplies =
         stillWaiting.map { microserviceActor =>
-          val id = microserviceActor.path.parent.name
+          val id = actorToMicroserviceId(microserviceActor)
           id -> "TimedOut"
         }
-      requester ! Registry.RespondAllHealthCheck(requestId, repliesSoFar ++ timedOutReplies)
+      requester ! Registry.HealthCheckResponse(requestId, repliesSoFar ++ timedOutReplies)
       context.stop(self)
   }
 
   def receivedResponse(microserviceActor: ActorRef, status: String, stillWaiting: Set[ActorRef], repliesSoFar: Map[String, String]): Unit = {
     context.unwatch(microserviceActor)
 
-    val microserviceId = microserviceActor.path.parent.name
+    val microserviceId = actorToMicroserviceId(microserviceActor)
     val newStillWaiting = stillWaiting - microserviceActor
 
     log.info("health of {} is {}", microserviceId, status)
 
     val newRepliesSoFar = repliesSoFar + (microserviceId -> status)
     if (newStillWaiting.isEmpty) {
-      requester ! Registry.RespondAllHealthCheck(requestId, newRepliesSoFar)
+      requester ! Registry.HealthCheckResponse(requestId, newRepliesSoFar)
       context.stop(self)
     } else {
       context.become(waitingForReplies(newRepliesSoFar, newStillWaiting))

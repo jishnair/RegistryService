@@ -43,13 +43,12 @@ object RegistryService {
   }
 
   def getListOfRunningMicroservices(registryActorRef: ActorRef): Future[HttpEntity.Strict] = {
-    val microserviceListFuture = (registryRef ? RequestMicroserviceList).mapTo[List[MicroserviceModel]]
+    val microserviceListFuture = (registryActorRef ? RequestMicroserviceList(1)).mapTo[List[MicroserviceModel]]
 
     microserviceListFuture.map { microserviceList =>
       HttpEntity(ContentTypes.`application/json`, microserviceList.toJson.prettyPrint)
     }
   }
-
 
   def healthCheck(registryActorRef: ActorRef): Unit = {
     registryActorRef ? HealthCheckAllMicroservices(1)

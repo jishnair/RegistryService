@@ -32,7 +32,7 @@ class ServiceMonitorSpec extends TestKit(ActorSystem("MySpec"))
     queryActor.tell(Microservice.RespondHealthCheck(1), microservice1.ref)
     queryActor.tell(Microservice.RespondHealthCheck(1), microservice2.ref)
 
-    requester.expectMsg(Registry.RespondAllHealthCheck(1,Map("service1"-> "OK", "service2"-> "OK")))
+    requester.expectMsg(Registry.HealthCheckResponse(1,Map("system" -> "OK")))
 
   }
 

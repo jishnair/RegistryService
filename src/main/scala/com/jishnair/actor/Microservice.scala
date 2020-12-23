@@ -28,7 +28,7 @@ class Microservice(name: String) extends Actor with ActorLogging {
     case RequestGreeting(id) =>
       sender() ! RespondGreeting(id, s"Greetings from $name")
     case RequestHealthCheck(id) =>
-      log.info("Received health check {}", self.path.name)
+     // log.info("Received health check {}", self.path.name)
       sender() ! RespondHealthCheck(id)
   }
 }

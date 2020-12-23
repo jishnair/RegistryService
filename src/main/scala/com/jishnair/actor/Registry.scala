@@ -1,8 +1,9 @@
 package com.jishnair.actor
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
-import akka.routing.{BalancingPool, BroadcastPool, RoundRobinPool}
+import akka.routing.{BalancingPool, BroadcastPool, RoundRobinGroup, RoundRobinPool}
 import com.jishnair.model.Model
+import com.jishnair.model.Model.MicroserviceModel
 
 import scala.concurrent.duration.DurationInt
 import scala.util.Random
@@ -27,7 +28,7 @@ object Registry {
 
   final case class HealthCheckAllMicroservices(requestId: Long)
 
-  final case class RespondAllHealthCheck(requestId: Long, message: Map[String, String])
+  final case class HealthCheckResponse(requestId: Long, message: Map[String, String])
 
 }
 
@@ -36,9 +37,12 @@ class Registry extends Actor with ActorLogging {
   import Registry._
 
   //Keep track of the created microservices
-  var nameToActorDB = Map.empty[String, ActorRef]
-  var actorToNameDB = Map.empty[ActorRef, String]
-  var nameToMicroserviceDB = Map.empty[String, Model.MicroserviceModel]
+  //TODO: This should be saved in a Database
+  var routerToActorDB = Map.empty[String, ActorRef]
+  var actorToRouterDB = Map.empty[ActorRef, String]
+  var replicasToActorDB = Map.empty[String, ActorRef]
+  var actorToReplicasDB = Map.empty[ActorRef, String]
+  var nameToMicroserviceDB = Map.empty[String, MicroserviceModel]
 
   override def preStart(): Unit = log.info("Registry started")
 
@@ -47,36 +51,56 @@ class Registry extends Actor with ActorLogging {
   override def receive: Receive = {
     case createMsg@CreateMicroservice(requestId, name, _, _, _) =>
       //check if a microservice with the given "name" already exist
-      nameToActorDB.get(name) match {
+      routerToActorDB.get(name) match {
         case Some(_) =>
           log.warning("The Microservice with name {} already exists", name)
           sender() ! MicroserviceAlreadyExists(requestId)
 
         case None =>
           //Create N number of microservices with using a pool of actors
-          val microServiceActor = context.actorOf(Microservice.props(createMsg.serviceName)
-            .withRouter(RoundRobinPool(nrOfInstances = createMsg.replicas)), s"${createMsg.serviceName}")
-          context.watch(microServiceActor)
-          nameToActorDB += name -> microServiceActor
-          actorToNameDB += microServiceActor -> name
+          val groupActor: ActorRef = // group's master
+            context.actorOf(RoundRobinGroup(createReplicas(createMsg)).props(), createMsg.serviceName)
+
+          context.watch(groupActor)
+          routerToActorDB += name -> groupActor
+          actorToRouterDB += groupActor -> name
           nameToMicroserviceDB += name -> Model.MicroserviceModel(name, generateRandomId(), createMsg.isEntryPoint, createMsg.dependency, true)
           sender() ! Registry.MicroserviceCreated(createMsg.requestId)
 
       }
 
     case RequestMicroserviceList(requestId) =>
+      log.info(nameToMicroserviceDB.values.toList.toString())
       sender() ! nameToMicroserviceDB.values.toList
 
     case HealthCheckAllMicroservices(requestId) =>
       log.info("checking health")
-      context.actorOf(ServiceMonitor.props(actorToNameDB, requestId, requester = sender(), 3.seconds))
+      context.actorOf(ServiceMonitor.props(actorToReplicasDB, requestId, requester = self, 3.seconds))
+
+    case HealthCheckResponse(requestId, message) =>
+      log.info("Health check result=" + message.toString())
 
     case Terminated(microServiceActor) =>
-      val serviceName = actorToNameDB(microServiceActor)
+      val serviceName = actorToRouterDB(microServiceActor)
       log.info("Microservice actor {} has been terminated", serviceName)
-      actorToNameDB -= microServiceActor
-      nameToActorDB -= serviceName
+      actorToRouterDB -= microServiceActor
+      routerToActorDB -= serviceName
       nameToMicroserviceDB -= serviceName
+  }
+
+  def createReplicas(createMsg: CreateMicroservice): List[String] = {
+
+    val range = (1 to createMsg.replicas).toList
+    val replicaNames = range.map(createMsg.serviceName + "-" + "instance" + _)
+    val actorPaths = replicaNames.map("/user/registry/" + _)
+
+    replicaNames.foreach(name => {
+      val replicaActor = context.actorOf(Microservice.props(name), name)
+      replicasToActorDB += name -> replicaActor
+      actorToReplicasDB += replicaActor -> name
+    })
+
+    actorPaths
   }
 
   //pseudo unique id generator

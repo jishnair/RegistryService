@@ -1,6 +1,7 @@
 package com.jishnair.controller
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorLogging, ActorSystem}
+import akka.event.Logging
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
@@ -18,13 +19,15 @@ import scala.language.postfixOps
 
 object RegistryController extends App {
 
+
   implicit val system = ActorSystem("registry-system")
   implicit val materializer = ActorMaterializer()
   implicit val timeout = Timeout(2 seconds)
   implicit val deploymentFormat = jsonFormat4(Deployment)
 
 
-  val registryRef = system.actorOf(Registry.props, "microservice-registry")
+
+  val registryRef = system.actorOf(Registry.props, "registry")
   val rnd = new scala.util.Random
 
   val route =
