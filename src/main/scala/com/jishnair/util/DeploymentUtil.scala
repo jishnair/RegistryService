@@ -8,7 +8,7 @@ object DeploymentUtil {
   type Node = Map[String, List[String]]
 
   /**
-   * A Sanity checker for the input deplyment file.
+   * A Sanity checker for the input deployment file.
    * Contains a Depth First Search algorithm for finding cycles in the dependency tree
    *
    * @param deploymentList
@@ -19,10 +19,10 @@ object DeploymentUtil {
 
     val maybeEntryPoint = deploymentList.filter(_.entryPoint == true)
     if (maybeEntryPoint.isEmpty) {
-      return (false, "Error: No entry point defined.")
+      return (false, " No entry point defined.")
     }
     else if (maybeEntryPoint.length > 1) {
-      return (false, "Error: More than one entry point defined.")
+      return (false, "More than one entry point defined.")
     }
     val entryPoint = maybeEntryPoint.head
     val startNode: (String, List[String]) = entryPoint.name -> entryPoint.dependencies
@@ -32,8 +32,7 @@ object DeploymentUtil {
     def dfs(node: (String, List[String]), tree: Node, visited: List[String]): (Boolean, String) = {
       if (visited.contains(node._1)) {
         if (node == startNode) {
-          println("found cycle ", visited ++ List(node._1))
-          return (false, s"Error: Cyclcic dependency: ${(visited ++ List(node._1)).toString()}")
+          return (false, s" Cyclic dependency: ${(visited ++ List(node._1)).mkString(" -> ")}")
         }
       } else {
         val newVisited = visited ++ List(node._1)

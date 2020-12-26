@@ -15,6 +15,10 @@ object ServiceMonitor {
   }
 }
 
+/*
+ ServiceMonitor actor pings each Microservices instances and waits for a reply till the timeout.
+ If either all Microservices replies or reaches timeout it replies the status to the sender.
+ */
 class ServiceMonitor(actorToMicroserviceId: Map[ActorRef, String],
                      requestId: Long,
                      requester: ActorRef,
@@ -26,6 +30,7 @@ class ServiceMonitor(actorToMicroserviceId: Map[ActorRef, String],
 
   val queryTimeoutTimer = context.system.scheduler.scheduleOnce(timeout, self, CollectionTimeout)
 
+  //Ping all microservices
   override def preStart(): Unit = {
     log.info("service monitor started")
     actorToMicroserviceId.keysIterator.foreach { microserviceActor =>
@@ -63,7 +68,6 @@ class ServiceMonitor(actorToMicroserviceId: Map[ActorRef, String],
 
     val microserviceId = actorToMicroserviceId(microserviceActor)
     val newStillWaiting = stillWaiting - microserviceActor
-
     log.info("health of {} is {}", microserviceId, status)
 
     val newRepliesSoFar = repliesSoFar + (microserviceId -> status)

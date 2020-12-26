@@ -19,9 +19,9 @@ class Microservice(name: String) extends Actor with ActorLogging {
 
   import Microservice._
 
-  override def preStart(): Unit = log.info("Microservice instance {}-{} started", name, self.path.name)
+  override def preStart(): Unit = log.info("Microservice  {} started", name)
 
-  override def postStop(): Unit = log.info("Microservice instance {}-{} stopped", name, self.path.name)
+  override def postStop(): Unit = log.info("Microservice  {} stopped", name)
 
   override def receive: Receive = {
 

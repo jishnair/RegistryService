@@ -13,7 +13,7 @@ class ServiceMonitorSpec extends TestKit(ActorSystem("MySpec"))
     with BeforeAndAfterAll
     with Matchers {
 
-  "service monitor should check health" in {
+  "service monitor should check health of all microservices" in {
     val requester = TestProbe()
 
     val microservice1 = TestProbe()
@@ -33,7 +33,5 @@ class ServiceMonitorSpec extends TestKit(ActorSystem("MySpec"))
     queryActor.tell(Microservice.RespondHealthCheck(1), microservice2.ref)
 
     requester.expectMsg(Registry.HealthCheckResponse(1,Map("system" -> "OK")))
-
   }
-
 }
