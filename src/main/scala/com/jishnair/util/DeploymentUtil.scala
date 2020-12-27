@@ -26,7 +26,11 @@ object DeploymentUtil {
     }
     val entryPoint = maybeEntryPoint.head
     val startNode: (String, List[String]) = entryPoint.name -> entryPoint.dependencies
-    val dependecyTree: Node = deploymentList.map(l => l.name -> l.dependencies).toMap
+    val dependencyTree: Node = deploymentList.map(l => l.name -> l.dependencies).toMap
+    val keySet= dependencyTree.keySet
+    if((keySet.filter(_.isBlank)).size > 0)
+      return (false, "Empty Microservice Names")
+
 
     //Depth first search
     def dfs(node: (String, List[String]), tree: Node, visited: List[String]): (Boolean, String) = {
@@ -41,7 +45,7 @@ object DeploymentUtil {
       return (true, "OK")
     }
 
-    dfs(startNode, dependecyTree, List.empty)
+    dfs(startNode, dependencyTree, List.empty)
   }
 
   /**

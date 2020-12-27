@@ -2,17 +2,15 @@ package com.jishnair.actor
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
 import akka.routing.{BalancingPool, BroadcastPool, RoundRobinGroup, RoundRobinPool}
+import com.jishnair.actor.MicroserviceActor.RequestGreeting
 import com.jishnair.model.Model
 import com.jishnair.model.Model.MicroserviceModel
 
 import scala.concurrent.duration.DurationInt
 import scala.util.Random
 
-/**
- * Registry creates and track Microservices
- */
-object Registry {
-  def props: Props = Props(new Registry)
+object RegistryActor {
+  def props: Props = Props(new RegistryActor)
 
   //messages
   final case class CreateMicroservice(requestId: Long, serviceName: String, isEntryPoint: Boolean, replicas: Int, dependency: List[String])
@@ -31,12 +29,15 @@ object Registry {
 
   final case class GetRouterActorList(requestId: Long)
 
+  final case class SendGreetings(requestId: Long, name: String)
 
 }
+/**
+ * RegistryActor creates and track Microservices
+ */
+class RegistryActor extends Actor with ActorLogging {
 
-class Registry extends Actor with ActorLogging {
-
-  import Registry._
+  import RegistryActor._
 
   //Keep track of the created Actors
   //TODO: This should be saved in a Database
@@ -61,30 +62,36 @@ class Registry extends Actor with ActorLogging {
           sender() ! MicroserviceAlreadyExists(requestId)
 
         case None =>
-          //Create group router actor which manages all the replicas
-          val groupActor: ActorRef = // group's master
+          //First create replicas and then create router actor which manages all the replicas
+          val routerActor: ActorRef = // group's master
             context.actorOf(RoundRobinGroup(createReplicas(createMsg)).props(), name)
-          log.info("Creating router actor {} ", name)
+          log.info("Creating router actor {} ", routerActor.toString())
 
-          context.watch(groupActor)
-          routerToActorDB += name -> groupActor
-          actorToRouterDB += groupActor -> name
-          nameToMicroserviceDB += name -> Model.MicroserviceModel(name, generateRandomId(), createMsg.isEntryPoint,createMsg.replicas, createMsg.dependency)
-          sender() ! Registry.MicroserviceCreated(createMsg.requestId)
+          context.watch(routerActor)
+          routerToActorDB += name -> routerActor
+          actorToRouterDB += routerActor -> name
+          nameToMicroserviceDB += name -> Model.MicroserviceModel(name, generateRandomId(), createMsg.isEntryPoint, createMsg.replicas, createMsg.dependency)
+          sender() ! RegistryActor.MicroserviceCreated(createMsg.requestId)
 
       }
 
     case RequestMicroserviceList(requestId) =>
-      log.info(nameToMicroserviceDB.values.toList.toString())
       sender() ! nameToMicroserviceDB.values.toList
 
     case GetRouterActorList(requestId) =>
       sender() ! routerToActorDB.keySet
 
+    case SendGreetings(requestId, name) =>
+      val routerActor = routerToActorDB.get(name)
+      routerActor.map( actor => {
+        log.info(actor.toString())
+        actor ! RequestGreeting(requestId: Long)
+      })
+
     case HealthCheckAllMicroservices(requestId) =>
       log.info("checking health")
       if (!actorToReplicasDB.isEmpty)
-        context.actorOf(ServiceMonitor.props(actorToReplicasDB, requestId, requester = self, 3.seconds))
+        context.actorOf(ServiceMonitorActor.props(actorToReplicasDB, requestId, requester = self, 3.seconds))
 
     case HealthCheckResponse(requestId, message) =>
       log.info("Health check result=" + message.toString())
@@ -106,7 +113,6 @@ class Registry extends Actor with ActorLogging {
         actorToReplicasDB -= actor
         replicasToActorDB -= replicaName
       }
-
   }
 
   //Create N instances of a Microservice
@@ -116,11 +122,12 @@ class Registry extends Actor with ActorLogging {
     val actorPaths = replicaNames.map("/user/registry/" + _)
 
     replicaNames.foreach(name => {
-      val replicaActor = context.actorOf(Microservice.props(name), name)
+      val replicaActor = context.actorOf(MicroserviceActor.props(name), name)
       replicasToActorDB += name -> replicaActor
       actorToReplicasDB += replicaActor -> name
       context.watch(replicaActor)
     })
+    log.info(actorPaths.toString())
     actorPaths
   }
 

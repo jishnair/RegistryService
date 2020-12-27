@@ -3,7 +3,7 @@ package com.jishnair.actor
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
 import scala.concurrent.duration._
 
-object ServiceMonitor {
+object ServiceMonitorActor {
 
   case object CollectionTimeout
 
@@ -11,7 +11,7 @@ object ServiceMonitor {
             requestId: Long,
             requester: ActorRef,
             timeout: FiniteDuration): Props = {
-    Props(new ServiceMonitor(actorToMicroserviceId, requestId, requester, timeout))
+    Props(new ServiceMonitorActor(actorToMicroserviceId, requestId, requester, timeout))
   }
 }
 
@@ -19,13 +19,13 @@ object ServiceMonitor {
  ServiceMonitor actor pings each Microservices instances and waits for a reply till the timeout.
  If either all Microservices replies or reaches timeout it replies the status to the sender.
  */
-class ServiceMonitor(actorToMicroserviceId: Map[ActorRef, String],
-                     requestId: Long,
-                     requester: ActorRef,
-                     timeout: FiniteDuration)
+class ServiceMonitorActor(actorToMicroserviceId: Map[ActorRef, String],
+                          requestId: Long,
+                          requester: ActorRef,
+                          timeout: FiniteDuration)
   extends Actor with ActorLogging {
 
-  import ServiceMonitor._
+  import ServiceMonitorActor._
   import context.dispatcher
 
   val queryTimeoutTimer = context.system.scheduler.scheduleOnce(timeout, self, CollectionTimeout)
@@ -35,7 +35,7 @@ class ServiceMonitor(actorToMicroserviceId: Map[ActorRef, String],
     log.info("service monitor started")
     actorToMicroserviceId.keysIterator.foreach { microserviceActor =>
       context.watch(microserviceActor)
-      microserviceActor ! Microservice.RequestHealthCheck(requestId)
+      microserviceActor ! MicroserviceActor.RequestHealthCheck(requestId)
     }
   }
 
@@ -47,7 +47,7 @@ class ServiceMonitor(actorToMicroserviceId: Map[ActorRef, String],
     waitingForReplies(Map.empty, actorToMicroserviceId.keySet)
 
   def waitingForReplies(repliesSoFar: Map[String, String], stillWaiting: Set[ActorRef]): Receive = {
-    case Microservice.RespondHealthCheck(requestId) =>
+    case MicroserviceActor.RespondHealthCheck(requestId) =>
       receivedResponse(sender(), "OK", stillWaiting, repliesSoFar)
 
     case Terminated(microserviceActor) =>
@@ -59,7 +59,7 @@ class ServiceMonitor(actorToMicroserviceId: Map[ActorRef, String],
           val id = actorToMicroserviceId(microserviceActor)
           id -> "TimedOut"
         }
-      requester ! Registry.HealthCheckResponse(requestId, repliesSoFar ++ timedOutReplies)
+      requester ! RegistryActor.HealthCheckResponse(requestId, repliesSoFar ++ timedOutReplies)
       context.stop(self)
   }
 
@@ -72,7 +72,7 @@ class ServiceMonitor(actorToMicroserviceId: Map[ActorRef, String],
 
     val newRepliesSoFar = repliesSoFar + (microserviceId -> status)
     if (newStillWaiting.isEmpty) {
-      requester ! Registry.HealthCheckResponse(requestId, newRepliesSoFar)
+      requester ! RegistryActor.HealthCheckResponse(requestId, newRepliesSoFar)
       context.stop(self)
     } else {
       context.become(waitingForReplies(newRepliesSoFar, newStillWaiting))

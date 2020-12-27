@@ -2,8 +2,8 @@ package com.jishnair.actor
 
 import akka.actor.{Actor, ActorLogging, Props}
 
-object Microservice {
-  def props(name: String): Props = Props(new Microservice(name))
+object MicroserviceActor {
+  def props(name: String): Props = Props(new MicroserviceActor(name))
 
   final case class RequestGreeting(requestId: Long)
 
@@ -14,10 +14,10 @@ object Microservice {
   final case class RespondHealthCheck(requestId: Long)
 
 }
+//Represents a microservice instance
+class MicroserviceActor(name: String) extends Actor with ActorLogging {
 
-class Microservice(name: String) extends Actor with ActorLogging {
-
-  import Microservice._
+  import MicroserviceActor._
 
   override def preStart(): Unit = log.info("Microservice  {} started", name)
 
@@ -26,9 +26,9 @@ class Microservice(name: String) extends Actor with ActorLogging {
   override def receive: Receive = {
 
     case RequestGreeting(id) =>
+      log.info(s"Greetings from $name")
       sender() ! RespondGreeting(id, s"Greetings from $name")
     case RequestHealthCheck(id) =>
-     // log.info("Received health check {}", self.path.name)
       sender() ! RespondHealthCheck(id)
   }
 }

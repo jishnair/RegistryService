@@ -4,7 +4,7 @@ import akka.actor.ActorRef
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
 import akka.pattern.ask
 import akka.util.Timeout
-import com.jishnair.actor.Registry.{CreateMicroservice, GetHealthCheckReport, HealthCheckAllMicroservices, RequestMicroserviceList}
+import com.jishnair.actor.RegistryActor._
 import com.jishnair.model.Model.{Deployment, MicroserviceModel}
 import com.jishnair.util.DeploymentUtil._
 import spray.json.DefaultJsonProtocol._
@@ -23,14 +23,15 @@ object RegistryService {
   def deploy(deploymentListInput: List[Deployment], registryActor: ActorRef): HttpResponse = {
     //remove empty strings from dependencies
     val deploymentList = deploymentListInput.map(l => Deployment(l.name, l.entryPoint, l.replicas, l.dependencies.filterNot(_.isBlank)))
-    val dependecyTree = deploymentList.map(l => l.name -> l).toMap
-    val dependencyKeySet = dependecyTree.keySet
+    val dependencyTree = deploymentList.map(l => l.name -> l).toMap
+    val dependencyKeySet = dependencyTree.keySet
+
     //Check sanity of input deployment json
     val sanityCheckResult = checkDeploymentSanity(deploymentList)
     if (sanityCheckResult._1) {
       val orderedDependencyList = getOrderedDependencyList(deploymentList).filterNot(_.isBlank)
 
-      //Check if there is a dependency which is not specified in the dependency list
+      //Check if there is a dependency which has no specification
       //: TODO Check if any of the dependecies are already running
       val unspecifiedDependency = orderedDependencyList.filterNot(dependencyKeySet.contains(_))
       if (unspecifiedDependency.nonEmpty)
@@ -40,9 +41,9 @@ object RegistryService {
       //Invoke the dependencies in the correct order
       orderedDependencyList.foreach(name =>
         registryActor ! CreateMicroservice(1, name,
-          dependecyTree.get(name).map(_.entryPoint).getOrElse(false),
-          dependecyTree.get(name).map(_.replicas).getOrElse(1),
-          dependecyTree.get(name).map(_.dependencies).getOrElse(List.empty)
+          dependencyTree.get(name).map(_.entryPoint).getOrElse(false),
+          dependencyTree.get(name).map(_.replicas).getOrElse(1),
+          dependencyTree.get(name).map(_.dependencies).getOrElse(List.empty)
         ))
       HttpResponse(StatusCodes.OK, entity = HttpEntity(ContentTypes.`application/json`, """{"message":"Microservices created"}"""))
     } else {
@@ -67,5 +68,9 @@ object RegistryService {
     healthReportFuture.map { report =>
       HttpEntity(ContentTypes.`application/json`, report.toJson.prettyPrint)
     }
+  }
+
+  def sendGreetings(registryActorRef: ActorRef, name: String): Unit = {
+    registryActorRef ! SendGreetings(1, name)
   }
 }

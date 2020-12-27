@@ -1,0 +1,261 @@
+{
+	"info": {
+		"_postman_id": "20bcb74d-1c5d-41e8-a589-01eb0aa867ce",
+		"name": "ServiceRegistry",
+		"description": "APIs for testing service registry.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create  deployment",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[{\n\"name\": \"ServiceA\",\n\"entryPoint\": true,\n \"replicas\": 2,\n \"dependencies\": [\"ServiceB\",\"ServiceC\"]\n},\n{\n\"name\": \"ServiceB\",\n\"entryPoint\": false,\n \"replicas\": 2,\n \"dependencies\": [ \"ServiceC\"]\n},\n{\n\"name\": \"ServiceC\",\n\"entryPoint\": false,\n \"replicas\": 2,\n \"dependencies\": [\"ServiceD\"]\n},\n{\n\"name\": \"ServiceD\",\n\"entryPoint\": false,\n \"replicas\": 2,\n \"dependencies\": []\n}]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/deployment",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"deployment"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check cyclic dependency",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[{\n\"name\": \"ServiceA\",\n\"entryPoint\": true,\n \"replicas\": 2,\n \"dependencies\": [\"ServiceB\",\"ServiceC\"]\n},\n{\n\"name\": \"ServiceB\",\n\"entryPoint\": false,\n \"replicas\": 2,\n \"dependencies\": [ \"ServiceC\"]\n},\n{\n\"name\": \"ServiceC\",\n\"entryPoint\": false,\n \"replicas\": 2,\n \"dependencies\": [\"ServiceD\"]\n},\n{\n\"name\": \"ServiceD\",\n\"entryPoint\": false,\n \"replicas\": 2,\n \"dependencies\": [\"ServiceA\"]\n}]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/deployment",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"deployment"
+					]
+				},
+				"description": "Check the cyclic dependency in the input JSON description. The response will show a graph of the cyclic dependency. "
+			},
+			"response": []
+		},
+		{
+			"name": "Check unspecified dependencies",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[{\n\"name\": \"ServiceA\",\n\"entryPoint\": true,\n \"replicas\": 2,\n \"dependencies\": [\"ServiceB\",\"ServiceC\"]\n},\n{\n\"name\": \"ServiceB\",\n\"entryPoint\": false,\n \"replicas\": 2,\n \"dependencies\": [ \"ServiceE\"]\n},\n{\n\"name\": \"ServiceC\",\n\"entryPoint\": false,\n \"replicas\": 2,\n \"dependencies\": [\"ServiceD\"]\n},\n{\n\"name\": \"ServiceD\",\n\"entryPoint\": false,\n \"replicas\": 2,\n \"dependencies\": [\"\"]\n}]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/deployment",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"deployment"
+					]
+				},
+				"description": "If there is a dependency which does not have an deployemnt specification an error will be shown."
+			},
+			"response": []
+		},
+		{
+			"name": "Get deployment",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/deployment",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"deployment"
+					]
+				},
+				"description": "Returns a list of Running microservices"
+			},
+			"response": []
+		},
+		{
+			"name": "Create health check report",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ0ZXN0NiIsImV4cCI6MTYwNzcwNDI1M30.UJR6ZXWBAc2YxGJ4AYkKiuSvPmVxbLSGdfsPIuToWIxfY91yD2aZ_-pKcnpJt01ekSxDSVoKzzyvS_Q96G_tJmWGsv3vhjt8mD4N-vNOmp0o0yJP-Cqj8THz6Tssm0vdmKVzGHqgxK6UnLGsbwi2wyU1f7qJQfelLIT3guBkViuWAJRyBEKkTfPtXrJWZhwi3aHJhmsv4sT3mhGOyIl0xJwkwi0D8lScVp_zHNf0y43thyebquHTIw0F9xK-7a7pwBNPtqpFl46RMf7DoxQCUQ63lCGE1V46qfh63u1G_SglkmKOmtqQZJSz_F2-cp_IfH9tlmqNenj87cp19xjQWg",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[{\n\"name\": \"A\", \n\"entryPoint\": true,\n \"replicas\": 2, \n \"dependencies\": [\"B\",\"C\"]\n},\n{\n\"name\": \"B\", \n\"entryPoint\": false,\n \"replicas\": 2, \n \"dependencies\": [ \"C\"]\n},\n{\n\"name\": \"C\", \n\"entryPoint\": false,\n \"replicas\": 2, \n \"dependencies\": [\"D\"]\n},\n{\n\"name\": \"D\", \n\"entryPoint\": false,\n \"replicas\": 2, \n \"dependencies\": []\n}\n\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/healthcheck",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"healthcheck"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get healthcheck report",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ0ZXN0NiIsImV4cCI6MTYwNzcwNDI1M30.UJR6ZXWBAc2YxGJ4AYkKiuSvPmVxbLSGdfsPIuToWIxfY91yD2aZ_-pKcnpJt01ekSxDSVoKzzyvS_Q96G_tJmWGsv3vhjt8mD4N-vNOmp0o0yJP-Cqj8THz6Tssm0vdmKVzGHqgxK6UnLGsbwi2wyU1f7qJQfelLIT3guBkViuWAJRyBEKkTfPtXrJWZhwi3aHJhmsv4sT3mhGOyIl0xJwkwi0D8lScVp_zHNf0y43thyebquHTIw0F9xK-7a7pwBNPtqpFl46RMf7DoxQCUQ63lCGE1V46qfh63u1G_SglkmKOmtqQZJSz_F2-cp_IfH9tlmqNenj87cp19xjQWg",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[{\n\"name\": \"A\", \n\"entryPoint\": true,\n \"replicas\": 2, \n \"dependencies\": [\"B\",\"C\"]\n},\n{\n\"name\": \"B\", \n\"entryPoint\": false,\n \"replicas\": 2, \n \"dependencies\": [ \"C\"]\n},\n{\n\"name\": \"C\", \n\"entryPoint\": false,\n \"replicas\": 2, \n \"dependencies\": [\"D\"]\n},\n{\n\"name\": \"D\", \n\"entryPoint\": false,\n \"replicas\": 2, \n \"dependencies\": []\n}\n\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/healthcheck",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"healthcheck"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Send Greetings",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ0ZXN0NiIsImV4cCI6MTYwNzcwNDI1M30.UJR6ZXWBAc2YxGJ4AYkKiuSvPmVxbLSGdfsPIuToWIxfY91yD2aZ_-pKcnpJt01ekSxDSVoKzzyvS_Q96G_tJmWGsv3vhjt8mD4N-vNOmp0o0yJP-Cqj8THz6Tssm0vdmKVzGHqgxK6UnLGsbwi2wyU1f7qJQfelLIT3guBkViuWAJRyBEKkTfPtXrJWZhwi3aHJhmsv4sT3mhGOyIl0xJwkwi0D8lScVp_zHNf0y43thyebquHTIw0F9xK-7a7pwBNPtqpFl46RMf7DoxQCUQ63lCGE1V46qfh63u1G_SglkmKOmtqQZJSz_F2-cp_IfH9tlmqNenj87cp19xjQWg",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[{\n\"name\": \"A\", \n\"entryPoint\": true,\n \"replicas\": 2, \n \"dependencies\": [\"B\",\"C\"]\n},\n{\n\"name\": \"B\", \n\"entryPoint\": false,\n \"replicas\": 2, \n \"dependencies\": [ \"C\"]\n},\n{\n\"name\": \"C\", \n\"entryPoint\": false,\n \"replicas\": 2, \n \"dependencies\": [\"D\"]\n},\n{\n\"name\": \"D\", \n\"entryPoint\": false,\n \"replicas\": 2, \n \"dependencies\": []\n}\n\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/greeting?service=ServiceA",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"greeting"
+					],
+					"query": [
+						{
+							"key": "service",
+							"value": "ServiceA"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

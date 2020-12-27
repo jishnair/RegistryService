@@ -2,12 +2,12 @@ package com.jishnair
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import com.jishnair.actor.{Microservice, Registry, ServiceMonitor}
+import com.jishnair.actor.{MicroserviceActor, RegistryActor, ServiceMonitorActor}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.concurrent.duration.DurationInt
 
-class ServiceMonitorSpec extends TestKit(ActorSystem("MySpec"))
+class ServiceMonitorActorSpec extends TestKit(ActorSystem("MySpec"))
     with ImplicitSender
     with WordSpecLike
     with BeforeAndAfterAll
@@ -20,18 +20,18 @@ class ServiceMonitorSpec extends TestKit(ActorSystem("MySpec"))
     val microservice2 = TestProbe()
 
     val queryActor = system.actorOf(
-      ServiceMonitor.props(
+      ServiceMonitorActor.props(
         actorToMicroserviceId = Map(microservice1.ref -> "service1", microservice2.ref -> "service2"),
         requestId = 1,
         requester = requester.ref,
         timeout = 5.seconds))
 
-    microservice1.expectMsg(Microservice.RequestHealthCheck(1))
-    microservice2.expectMsg(Microservice.RequestHealthCheck(1))
+    microservice1.expectMsg(MicroserviceActor.RequestHealthCheck(1))
+    microservice2.expectMsg(MicroserviceActor.RequestHealthCheck(1))
 
-    queryActor.tell(Microservice.RespondHealthCheck(1), microservice1.ref)
-    queryActor.tell(Microservice.RespondHealthCheck(1), microservice2.ref)
+    queryActor.tell(MicroserviceActor.RespondHealthCheck(1), microservice1.ref)
+    queryActor.tell(MicroserviceActor.RespondHealthCheck(1), microservice2.ref)
 
-    requester.expectMsg(Registry.HealthCheckResponse(1,Map("system" -> "OK")))
+    requester.expectMsg(RegistryActor.HealthCheckResponse(1,Map("system" -> "OK")))
   }
 }
